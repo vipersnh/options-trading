@@ -6,9 +6,9 @@ import collections
 
 ## Current Setup of ~10 delta strangles
 #win_rate = 90/100
-#rw_to_cr_ratio = 1/2 # 50% profit target
-#cr_to_sl_ratio = 1/1.5 # 150% SL of the credit received
-#rr_ratio = rw_to_cr_ratio*cr_to_sl_ratio # Reward/Risk ratio
+#reward_to_credit_ratio = 50/100 # 50% of credit as profit target
+#stoploss_to_credit_ratio = 150/100 # 150% of credit as SL target
+#rr_ratio = reward_to_credit_ratio/stoploss_to_credit_ratio # Reward/Risk ratio
 #max_risk_per_trade = 5/100 # Max Loss as % of account size
 #max_risk_all_trades = 15/100
 #uncorrelated_parallel_trades = int(max_risk_all_trades/max_risk_per_trade)
@@ -17,35 +17,46 @@ import collections
 
 ## Higher delta of ~20 delta strangles
 #win_rate = 80/100
-#rw_to_cr_ratio = 1/2 # 50% profit target
-#cr_to_sl_ratio = 1/1 # 150% SL of the credit received
-#rr_ratio = rw_to_cr_ratio*cr_to_sl_ratio # Reward/Risk ratio
+#reward_to_credit_ratio = 50/100 # 50% of credit as profit target
+#stoploss_to_credit_ratio = 100/100 # 150% of credit as SL target
+#rr_ratio = reward_to_credit_ratio/stoploss_to_credit_ratio # Reward/Risk ratio
 #max_risk_per_trade = 5/100 # Max Loss as % of account size
 #max_risk_all_trades = 15/100
 #uncorrelated_parallel_trades = int(max_risk_all_trades/max_risk_per_trade)
-#account_size = 20*1000
+#account_size = 10*1000
 #average_trade_duration = 14
 
-# Straddle setup 
+## Straddle setup 
 win_rate = 50/100
-rw_to_cr_ratio = 0.5/1 # 50% profit target
-cr_to_sl_ratio = 0.3/1 # 100% SL of the credit received
-rr_ratio = rw_to_cr_ratio/cr_to_sl_ratio
-max_risk_per_trade = 3/100
-max_risk_all_trades = 10/100
+reward_to_credit_ratio = 50/100 # 50% of credit as profit target
+stoploss_to_credit_ratio = 30/100 # 30% of credit as SL target
+rr_ratio = reward_to_credit_ratio/stoploss_to_credit_ratio # Reward/Risk ratio
+max_risk_per_trade = 5/100 # Max Loss as % of account size
+max_risk_all_trades = 15/100
 uncorrelated_parallel_trades = int(max_risk_all_trades/max_risk_per_trade)
-account_size = 10000
+account_size = 10*1000
 average_trade_duration = 14
-print("Straddle Parameters")
-print("Reward to Credit Ratio : {0:.2f}%".format(rw_to_cr_ratio*100))
-print("Credit to SL Ratio : {0:.2f}%".format(cr_to_sl_ratio*100))
-print("Reward/Risk Ratio : {0:.2f}%".format(rr_ratio*100))
+
+
+print("Trading Parameters")
+print()
+print("Account Size : ${0}".format(account_size))
+print("Win-Rate : {0:.2f}% and RR Ratio : {1:.2f}%".format(win_rate*100, rr_ratio*100))
+print("Reward to Credit Ratio   : {0:.2f}%".format(reward_to_credit_ratio*100))
+print("Stoploss to Credit Ratio : {0:.2f}%".format(stoploss_to_credit_ratio*100))
+print("Maximum Risk : ${0:.2f}".format(max_risk_per_trade*account_size))
+credit = 1000
+rw = credit*reward_to_credit_ratio
+sl = credit*stoploss_to_credit_ratio
+print("For credit of ${0}, we'll have ${1} TP and ${2} SL limits".format(credit, int(rw), int(sl)))
+print()
 
 def get_account_samples(seed, win_rate, rr_ratio, max_risk, account_size, average_trade_duration, parallel_trades):
     trades_count = int(365/average_trade_duration)
     population = [-1, rr_ratio]
     weights = [1-win_rate, win_rate]
     random.seed(seed)
+    print("For win-rate of {0:.2f}% and Reward/Risk of {1:.2f}, SL = ${2:.2f} and TP = ${3:.2f}".format(win_rate*100, rr_ratio, max_risk*account_size, max_risk*rr_ratio*account_size))
     parallel_samples = list()
     for symbol in range(parallel_trades):
         samples = random.choices([0, 1], weights, k=trades_count)
@@ -59,7 +70,8 @@ def get_account_samples(seed, win_rate, rr_ratio, max_risk, account_size, averag
         account_samples.append(account_value)
         for trade in range(parallel_trades):
             sample = parallel_samples[trade][index]
-            win_loss = account_size*max_risk*population[sample]
+            win_loss = account_value*max_risk*population[sample]
+            print("win_loss = ${0:4d}, total-account = ${1:.2f}".format(int(win_loss), account_value))
             account_value += win_loss
             trades_by_symbol[trade].append(win_loss)
     
@@ -71,7 +83,7 @@ def ascii_histogram(seq) -> None:
     for k in sorted(counted):
         print('{0:5d}% {1}'.format(k, '+' * counted[k]))
 
-trial_count = 100
+trial_count = 1
 
 annual_gain_average = 0
 annual_gains = []
